@@ -32,14 +32,42 @@ class DatabaseEngine {
     Database db,
     int version
     ) async {
-    await db.execute('''
-      CREATE TABLE transactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        dateTime TEXT NOT NULL,
-        amount REAL NOT NULL,
-        type TEXT NOT NULL
-      )
-  ''');
+  //   await db.execute('''
+  //     CREATE TABLE transactions (
+  //       id INTEGER PRIMARY KEY AUTOINCREMENT,
+  //       dateTime TEXT NOT NULL,
+  //       amount REAL NOT NULL,
+  //       type TEXT NOT NULL
+  //     )
+  // ''');
+    await db.execute(
+      '''
+        CREATE TABLE transactions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          dateTime TEXT NOT NULL,
+          amount REAL NOT NULL)'''
+    );
+  }
+
+  Future<List<TransactionDataModel>> queryTransactionsByDate(DateTime date) async{
+    final db = await database;
+
+    final List<Map<String, dynamic>> results = await db.query(
+      'transactions',
+      where: 'dateTime LIKE ?',
+      whereArgs: ['${date.toIso8601String().split("T")[0]}%']
+    );
+
+    return List.generate(
+      results.length, (i){
+        return TransactionDataModel(
+          id: results[i]['id'],
+          dateTime: DateTime.parse(results[i]['dateTime']),
+          amount: (results[i]['amount'] as num).toDouble()
+          );
+      }
+
+    );
   }
 
   Future<List<TransactionDataModel>> getTransactions() async {
@@ -52,17 +80,23 @@ class DatabaseEngine {
       return TransactionDataModel(
       id: transactionrecords[i]['id'],
       dateTime: DateTime.parse(transactionrecords[i]['dateTime']),
-      amount: transactionrecords[i]['amount'],
-      type: transactionrecords[i]['type']=='Credit' ? TransactionType.Credit : TransactionType.Debit,);
+      amount: (transactionrecords[i]['amount'] as num).toDouble()
+      );
+      //type: transactionrecords[i]['type']=='Credit' ? TransactionType.Credit : TransactionType.Debit,);
     });
   } 
 
   Future<int> insertTransaction(TransactionDataModel tx) async {
     final db = await database;
+    // return await db.insert('transactions',{
+    //   'dateTime': tx.dateTime.toIso8601String(),
+    //   'amount': tx.amount,
+    //   'type': tx.type.name,
+    // });
     return await db.insert('transactions',{
       'dateTime': tx.dateTime.toIso8601String(),
-      'amount': tx.amount,
-      'type': tx.type.name,
-    });
+      'amount': tx.amount
+    }
+    );
   }
 }

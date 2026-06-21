@@ -11,80 +11,110 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  List<TransactionDataModel> transactions = [];
+  DateTime? selectedDate;
+  //TransactionType selectedType = TransactionType.Debit;
+  TextEditingController amountController = TextEditingController();
 
-    List<TransactionDataModel> transactions = [];
-    DateTime? selectedDate;
-    TransactionType selectedType = TransactionType.Debit;
-    TextEditingController amountController = TextEditingController();
+  DateTime? querySelectedDate;
 
-    Future<void> _loadData() async {
-      final data = await DatabaseEngine.instance.getTransactions();
+  List<TransactionDataModel> queriedTransactions = [];
+
+  Future<void> _queryTransactions() async {
+    
+    final queriedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+
+    if (queriedDate == null) {
+      return;
+    }
+
+    final results = await DatabaseEngine.instance.queryTransactionsByDate(
+      queriedDate,
+    );
+
+    // setState(() {
+    //   queriedTransactions = results;
+    // });
+    if (results.isNotEmpty) {
       setState(() {
-        transactions = data;
+        querySelectedDate = queriedDate;
+        queriedTransactions = results;
       });
     }
+  }
 
-    @override
-    void initState() {
-      super.initState();
-      _loadData();
-    }
+  Future<void> _loadData() async {
+    final data = await DatabaseEngine.instance.getTransactions();
+    setState(() {
+      transactions = data;
+    });
+  }
 
-    List<FlSpot> _buildSpots(){
-      return List.generate(transactions.length, (index){
-        final tx = transactions[index];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
-        return FlSpot(
-          index.toDouble(),
-          tx.amount,
-        );
-      });
-    }
+  List<FlSpot> _buildSpots() {
+    return List.generate(transactions.length, (index) {
+      final tx = transactions[index];
 
-    Future<void> _pickDate() async {
-      final picked = await showDatePicker(
-        context: context,
-        initialDate: DateTime.now(),
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2100),
-      );
+      return FlSpot(index.toDouble(), tx.amount);
+    });
+  }
 
-      if (picked != null) {
-        setState(() {
-          selectedDate = picked;
-        });
-      }
-    }
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
 
-    Future<void> _submitTransaction() async {
-      if (selectedDate == null || amountController.text.isEmpty) {
-        return;
-      }
-
-      final amount = double.parse(amountController.text);
-
-      final newTransaction = TransactionDataModel(
-        dateTime: selectedDate!,
-        amount: amount,
-        type: selectedType,
-      );
-
-      await DatabaseEngine.instance.insertTransaction(newTransaction);
-      await _loadData();
-
+    if (picked != null) {
       setState(() {
-        selectedDate = null;
-        amountController.clear();
-        selectedType = TransactionType.Debit;
+        selectedDate = picked;
       });
     }
+  }
+
+  Future<void> _submitTransaction() async {
+    if (selectedDate == null || amountController.text.isEmpty) {
+      return;
+    }
+
+    final amount = double.parse(amountController.text);
+
+    // final newTransaction = TransactionDataModel(
+    //   dateTime: selectedDate!,
+    //   amount: amount,
+    //   type: selectedType,
+    // );
+    final newTransaction = TransactionDataModel(
+      dateTime: selectedDate!,
+      amount: amount,
+    );
+
+    await DatabaseEngine.instance.insertTransaction(newTransaction);
+    await _loadData();
+
+    setState(() {
+      selectedDate = null;
+      amountController.clear();
+      //selectedType = TransactionType.Debit;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Home"),
-      ),
+      appBar: AppBar(title: Text("Home")),
       body: ListView(
         children: [
           Card(
@@ -95,12 +125,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(16),
                 child: LineChart(
                   LineChartData(
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: _buildSpots(),
-                      )
-                    ]
-                  )
+                    lineBarsData: [LineChartBarData(spots: _buildSpots())],
+                  ),
                 ),
               ),
             ),
@@ -113,53 +139,53 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Add Transactions",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    "Add Expense",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
 
                   Row(
                     children: [
-                      Text(selectedDate == null ? "No date selected" : selectedDate.toString().split(" ")[0]),
-                      
+                      Text(
+                        selectedDate == null
+                            ? "No date selected"
+                            : selectedDate.toString().split(" ")[0],
+                      ),
+
                       const Spacer(),
 
                       ElevatedButton(
-                        onPressed:_pickDate,
-                        child: const Text("Pick Date")
-                      )
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Row(
-                    children:[
-                      const Text("Type: "),
-                      const SizedBox(width: 10),
-
-                      DropdownButton<TransactionType>(
-                        value: selectedType,
-                        onChanged: (value){
-                          setState((){
-                            selectedType = value!;
-                          });
-                        },
-                        items: TransactionType.values.map((type){
-                          return DropdownMenuItem(
-                            value: type,
-                            child: Text(type.name),
-                          );
-                        }).toList(),
+                        onPressed: _pickDate,
+                        child: const Text("Pick Date"),
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 12),
 
+                  // Row(
+                  //   children:[
+                  //     const Text("Type: "),
+                  //     const SizedBox(width: 10),
+
+                  //     DropdownButton<TransactionType>(
+                  //       value: selectedType,
+                  //       onChanged: (value){
+                  //         setState((){
+                  //           selectedType = value!;
+                  //         });
+                  //       },
+                  //       items: TransactionType.values.map((type){
+                  //         return DropdownMenuItem(
+                  //           value: type,
+                  //           child: Text(type.name),
+                  //         );
+                  //       }).toList(),
+                  //     ),
+                  //   ],
+                  // ),
+
+                  //const SizedBox(height: 12),
                   TextField(
                     controller: amountController,
                     keyboardType: TextInputType.number,
@@ -177,6 +203,50 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: _submitTransaction,
                       child: const Text("Submit"),
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Card(
+            margin: const EdgeInsets.all(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Transactions',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Text(
+                        querySelectedDate == null
+                            ? "No date selected"
+                            : querySelectedDate.toString().split(" ")[0],
+                      ),
+                      const Spacer(),
+                      ElevatedButton(
+                        onPressed: _queryTransactions,
+                        child: const Text("Get Expenses"),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: queriedTransactions.length,
+                    itemBuilder: (context, index) {
+                      final tx = queriedTransactions[index];
+                      return ListTile(
+                        title: Text(tx.amount.toString()),
+                        subtitle: Text(tx.dateTime.toString()),
+                        
+                      );
+                    },
                   ),
                 ],
               ),
