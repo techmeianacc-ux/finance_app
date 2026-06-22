@@ -11,9 +11,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
   List<TransactionDataModel> transactions = [];
+
   DateTime? selectedDate;
-  //TransactionType selectedType = TransactionType.Debit;
+
   TextEditingController amountController = TextEditingController();
 
   DateTime? querySelectedDate;
@@ -37,14 +39,20 @@ class _HomeScreenState extends State<HomeScreen> {
       queriedDate,
     );
 
-    // setState(() {
-    //   queriedTransactions = results;
-    // });
     if (results.isNotEmpty) {
       setState(() {
         querySelectedDate = queriedDate;
         queriedTransactions = results;
       });
+    }
+    else{
+      setState(() {
+        querySelectedDate = queriedDate;
+        queriedTransactions = [];
+      });
+      //ScaffoldMessenger.of(context).showSnackBar(
+        //const SnackBar(content: Text("No transactions found for the selected date")),
+      //);
     }
   }
 
@@ -61,6 +69,11 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
+  @override
+  void dispose() {
+    amountController.dispose();
+    super.dispose();
+  }
   List<FlSpot> _buildSpots() {
     return List.generate(transactions.length, (index) {
       final tx = transactions[index];
@@ -89,8 +102,15 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final amount = double.parse(amountController.text);
+    final amount = double.parse(amountController.text); //add exception handling here
 
+    if(amount<=0){
+      //on screen message to user that amount must be greater than zero
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Amount must be greater than zero")),
+      );
+      return;
+    }
     // final newTransaction = TransactionDataModel(
     //   dateTime: selectedDate!,
     //   amount: amount,
