@@ -98,10 +98,14 @@ class DatabaseEngine {
   }
 
   //Querying a range of transactions
-  Future<List<TransactionDataModel>> getRangeTransactions(DateTime start, DateTime end) async{
+  Future<List<TransactionDataModel>> getRangeTransactions(DateTime? start, DateTime? end) async{
 
     final db = await database;
-
+    if (start ==null || end==null){
+      final now = DateTime.now();
+      start = DateTime(now.year, 1, 1);
+      end = DateTime(now.year, 12, 31, 23, 59, 59);
+    }
     final List<Map<String, dynamic>> results = await db.query('transactions',
     where: 'dateTime >= ? AND dateTime <= ?',
     whereArgs: [start.toIso8601String(),end.toIso8601String()],orderBy: 'dateTime ASC');
