@@ -3,11 +3,17 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseEngine {
+  
+  //Variables
   DatabaseEngine._privateConstructor();
+  
   static final DatabaseEngine instance = DatabaseEngine._privateConstructor();
 
   Database? _database;
   
+
+
+  //Getting the Database instance or creating it if it doesn't exist
   Future<Database> get database async {
     if (_database != null) return _database!;
     
@@ -15,6 +21,7 @@ class DatabaseEngine {
     return _database!;
   }
 
+  //Initializing the database
   Future<Database> _initDatabase() async {
 
     final dbPath = await getDatabasesPath();
@@ -28,18 +35,11 @@ class DatabaseEngine {
     );
   }
 
+  //Creating the database table
   Future<void> _onCreate(
     Database db,
     int version
     ) async {
-  //   await db.execute('''
-  //     CREATE TABLE transactions (
-  //       id INTEGER PRIMARY KEY AUTOINCREMENT,
-  //       dateTime TEXT NOT NULL,
-  //       amount REAL NOT NULL,
-  //       type TEXT NOT NULL
-  //     )
-  // ''');
     await db.execute(
       '''
         CREATE TABLE transactions (
@@ -49,6 +49,7 @@ class DatabaseEngine {
     );
   }
 
+  //getting transactions by date
   Future<List<TransactionDataModel>> queryTransactionsByDate(DateTime date) async{
     final db = await database;
 
@@ -70,11 +71,12 @@ class DatabaseEngine {
     );
   }
 
+  //getting all transactions
   Future<List<TransactionDataModel>> getTransactions() async {
     final db = await database;
 
     final List<Map<String, dynamic>> transactionrecords = 
-    await db.query('transactions');
+    await db.query('transactions', orderBy:'dateTime ASC');
 
     return List.generate(transactionrecords.length, (i) {
       return TransactionDataModel(
@@ -82,21 +84,36 @@ class DatabaseEngine {
       dateTime: DateTime.parse(transactionrecords[i]['dateTime']),
       amount: (transactionrecords[i]['amount'] as num).toDouble()
       );
-      //type: transactionrecords[i]['type']=='Credit' ? TransactionType.Credit : TransactionType.Debit,);
     });
   } 
 
+  //Inserting a transaction into the database
   Future<int> insertTransaction(TransactionDataModel tx) async {
     final db = await database;
-    // return await db.insert('transactions',{
-    //   'dateTime': tx.dateTime.toIso8601String(),
-    //   'amount': tx.amount,
-    //   'type': tx.type.name,
-    // });
     return await db.insert('transactions',{
       'dateTime': tx.dateTime.toIso8601String(),
       'amount': tx.amount
     }
     );
+  }
+
+  //Querying a range of transactions
+  Future<List<TransactionDataModel>> getRangeTransactions(DateTime start, DateTime end) async{
+
+    final db = await database;
+
+    final List<Map<String, dynamic>> results = await db.query('transactions',
+    where: 'dateTime >= ? AND dateTime <= ?',
+    whereArgs: [start.toIso8601String(),end.toIso8601String()],orderBy: 'dateTime ASC');
+
+    return List.generate(results.length,(i) {
+      return TransactionDataModel(
+        id:results[i]['id'],
+        dateTime: DateTime.parse(results[i]['dateTime']),
+        amount: (results[i]['amount'] as num).toDouble()
+        );
+      }
+    );
+
   }
 }

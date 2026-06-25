@@ -181,31 +181,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 12),,
 
-                  // Row(
-                  //   children:[
-                  //     const Text("Type: "),
-                  //     const SizedBox(width: 10),
-
-                  //     DropdownButton<TransactionType>(
-                  //       value: selectedType,
-                  //       onChanged: (value){
-                  //         setState((){
-                  //           selectedType = value!;
-                  //         });
-                  //       },
-                  //       items: TransactionType.values.map((type){
-                  //         return DropdownMenuItem(
-                  //           value: type,
-                  //           child: Text(type.name),
-                  //         );
-                  //       }).toList(),
-                  //     ),
-                  //   ],
-                  // ),
-
-                  //const SizedBox(height: 12),
                   TextField(
                     controller: amountController,
                     keyboardType: TextInputType.number,
