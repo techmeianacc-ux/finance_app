@@ -1,6 +1,6 @@
 import 'package:finance_app/DataModel/transaction_data_model.dart';
 import 'package:finance_app/DatabaseManager/database_engine.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:finance_app/HomeScreen/graph_component.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -74,13 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
     amountController.dispose();
     super.dispose();
   }
-  List<FlSpot> _buildSpots() {
-    return List.generate(transactions.length, (index) {
-      final tx = transactions[index];
-
-      return FlSpot(index.toDouble(), tx.amount);
-    });
-  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -111,11 +104,6 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       return;
     }
-    // final newTransaction = TransactionDataModel(
-    //   dateTime: selectedDate!,
-    //   amount: amount,
-    //   type: selectedType,
-    // );
     final newTransaction = TransactionDataModel(
       dateTime: selectedDate!,
       amount: amount,
@@ -127,7 +115,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       selectedDate = null;
       amountController.clear();
-      //selectedType = TransactionType.Debit;
     });
   }
 
@@ -139,16 +126,9 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Card(
             margin: const EdgeInsets.all(12),
-            child: SizedBox(
-              height: 250,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: LineChart(
-                  LineChartData(
-                    lineBarsData: [LineChartBarData(spots: _buildSpots())],
-                  ),
-                ),
-              ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child:GraphComponent(),
             ),
           ),
           Card(
@@ -181,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 12),,
+                  const SizedBox(height: 12),
 
                   TextField(
                     controller: amountController,
