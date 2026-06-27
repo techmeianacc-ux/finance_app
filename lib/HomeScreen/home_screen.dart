@@ -2,6 +2,7 @@ import 'package:finance_app/DataModel/transaction_data_model.dart';
 import 'package:finance_app/DatabaseManager/database_engine.dart';
 import 'package:finance_app/HomeScreen/graph_component.dart';
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqlite_api.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -118,6 +119,10 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _deleteRecords() async{
+    await DatabaseEngine.instance.deleteAllTransactions();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -229,6 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          ElevatedButton(onPressed: _deleteRecords, child: Text('Delete All Records'))
         ],
       ),
     );

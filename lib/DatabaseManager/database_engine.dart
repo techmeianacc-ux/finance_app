@@ -97,6 +97,10 @@ class DatabaseEngine {
     );
   }
 
+  Future<int> deleteAllTransactions() async{
+    final db = await database;
+    return await db.delete('transactions');
+  }
   //Querying a range of transactions
   Future<List<TransactionDataModel>> getRangeTransactions(DateTime? start, DateTime? end) async{
 
