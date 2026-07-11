@@ -1,30 +1,28 @@
 import 'package:finance_app/DataModel/transaction_data_model.dart';
-import 'package:finance_app/DatabaseManager/database_engine.dart';
-import 'package:finance_app/HomeScreen/graph_component.dart';
+import 'package:finance_app/ExpenseTracker/graph_component.dart';
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqlite_api.dart';
+import 'package:provider/provider.dart';
+import 'package:finance_app/Providers/expense_provider.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class ExpenseTracker extends StatefulWidget {
+  const ExpenseTracker({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<ExpenseTracker> createState() => _ExpenseTrackerState();
 }
+//Above is the ExpenseTracker Widget Class for stateful Widget.
 
-class _HomeScreenState extends State<HomeScreen> {
+//Below is the State Class for the ExpenseTracker Widget.
+class _ExpenseTrackerState extends State<ExpenseTracker> {
+  //Variables
+  DateTime? selectedDate; //Date for which the Expense is added.
+  TextEditingController amountController =
+      TextEditingController(); //Amount which is spent collected from user.
+  TextEditingController expenseDescriptionController =
+      TextEditingController(); //Description of the expense collected from user.
 
-  List<TransactionDataModel> transactions = [];
-
-  DateTime? selectedDate;
-
-  TextEditingController amountController = TextEditingController();
-
-  DateTime? querySelectedDate;
-
-  List<TransactionDataModel> queriedTransactions = [];
-
+  //Function to query transactions for a specific date
   Future<void> _queryTransactions() async {
-    
     final queriedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -36,46 +34,12 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final results = await DatabaseEngine.instance.queryTransactionsByDate(
-      queriedDate,
-    );
+    if (!context.mounted) return;
 
-    if (results.isNotEmpty) {
-      setState(() {
-        querySelectedDate = queriedDate;
-        queriedTransactions = results;
-      });
-    }
-    else{
-      setState(() {
-        querySelectedDate = queriedDate;
-        queriedTransactions = [];
-      });
-      //ScaffoldMessenger.of(context).showSnackBar(
-        //const SnackBar(content: Text("No transactions found for the selected date")),
-      //);
-    }
+    await context.read<ExpenseProvider>().queryTransactions(queriedDate);
   }
 
-  Future<void> _loadData() async {
-    final data = await DatabaseEngine.instance.getTransactions();
-    setState(() {
-      transactions = data;
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  @override
-  void dispose() {
-    amountController.dispose();
-    super.dispose();
-  }
-
+  //Function to pick Date for adding the expense.
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -91,14 +55,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  //Function to insert the expense into the datebase
   Future<void> _submitTransaction() async {
     if (selectedDate == null || amountController.text.isEmpty) {
       return;
     }
 
-    final amount = double.parse(amountController.text); //add exception handling here
+    final amount = double.parse(
+      amountController.text,
+    ); //add exception handling here
 
-    if(amount<=0){
+    if (amount <= 0) {
       //on screen message to user that amount must be greater than zero
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Amount must be greater than zero")),
@@ -108,32 +75,47 @@ class _HomeScreenState extends State<HomeScreen> {
     final newTransaction = TransactionDataModel(
       dateTime: selectedDate!,
       amount: amount,
+      expenseDescription: expenseDescriptionController.text,
     );
 
-    await DatabaseEngine.instance.insertTransaction(newTransaction);
-    await _loadData();
-
+    await context.read<ExpenseProvider>().insertTransaction(newTransaction);
+    if (!mounted) return;
     setState(() {
       selectedDate = null;
       amountController.clear();
+      expenseDescriptionController.clear();
     });
   }
 
-  Future<void> _deleteRecords() async{
-    await DatabaseEngine.instance.deleteAllTransactions();
+  //Function to delete all expense records from the database
+  Future<void> _deleteRecords() async {
+    await context.read<ExpenseProvider>().deleteAllTransactions();
   }
 
+  //Cleanup Function for the amountController to avoid memory leaks when the widget is disposed.
+  @override
+  void dispose() {
+    amountController.dispose();
+    expenseDescriptionController.dispose();
+    super.dispose();
+  }
+
+  //Main Widget build function for the ExpenseTracker Widget which builds the UI of the ExpenseTracker.
   @override
   Widget build(BuildContext context) {
+
+
+    final expenseProvider = context.watch<ExpenseProvider>(); //Whenever the ExpenseProvider notifies the listeners, this widget will rebuild.
+
     return Scaffold(
-      appBar: AppBar(title: Text("Home")),
+      appBar: AppBar(title: Text("Expense Tracker")),
       body: ListView(
         children: [
           Card(
             margin: const EdgeInsets.all(12),
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child:GraphComponent(),
+              child: GraphComponent(), //The GraphComponent Widget is used to display the graph of the expenses.
             ),
           ),
           Card(
@@ -179,6 +161,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 12),
 
+                  TextField(
+                    controller: expenseDescriptionController,
+                    keyboardType: TextInputType.text,
+                    decoration: const InputDecoration(
+                      labelText: "Description",
+                      border: OutlineInputBorder(),
+                    )
+                  ),
+
+                  const SizedBox(height: 12),
+
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -205,9 +198,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     children: [
                       Text(
-                        querySelectedDate == null
+                        expenseProvider.querySelectedDate == null
                             ? "No date selected"
-                            : querySelectedDate.toString().split(" ")[0],
+                            : expenseProvider.querySelectedDate
+                                  .toString()
+                                  .split(" ")[0],
                       ),
                       const Spacer(),
                       ElevatedButton(
@@ -220,12 +215,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: queriedTransactions.length,
+                    itemCount: expenseProvider.queriedTransactions.length,
                     itemBuilder: (context, index) {
-                      final tx = queriedTransactions[index];
+                      final tx = expenseProvider.queriedTransactions[index];
                       return ListTile(
                         title: Text(tx.amount.toString()),
                         subtitle: Text(tx.dateTime.toString()),
+                        trailing: Text(tx.expenseDescription),
                         
                       );
                     },
@@ -234,7 +230,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          ElevatedButton(onPressed: _deleteRecords, child: Text('Delete All Records'))
+          ElevatedButton(
+            onPressed: _deleteRecords,
+            child: Text('Delete All Records'),
+          ),
         ],
       ),
     );

@@ -45,7 +45,8 @@ class DatabaseEngine {
         CREATE TABLE transactions (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           dateTime TEXT NOT NULL,
-          amount REAL NOT NULL)'''
+          amount REAL NOT NULL,
+          expenseDescription TEXT NOT NULL)'''
     );
   }
 
@@ -64,7 +65,8 @@ class DatabaseEngine {
         return TransactionDataModel(
           id: results[i]['id'],
           dateTime: DateTime.parse(results[i]['dateTime']),
-          amount: (results[i]['amount'] as num).toDouble()
+          amount: (results[i]['amount'] as num).toDouble(),
+          expenseDescription: results[i]['expenseDescription']
           );
       }
 
@@ -82,7 +84,8 @@ class DatabaseEngine {
       return TransactionDataModel(
       id: transactionrecords[i]['id'],
       dateTime: DateTime.parse(transactionrecords[i]['dateTime']),
-      amount: (transactionrecords[i]['amount'] as num).toDouble()
+      amount: (transactionrecords[i]['amount'] as num).toDouble(),
+      expenseDescription: transactionrecords[i]['expenseDescription']
       );
     });
   } 
@@ -92,7 +95,8 @@ class DatabaseEngine {
     final db = await database;
     return await db.insert('transactions',{
       'dateTime': tx.dateTime.toIso8601String(),
-      'amount': tx.amount
+      'amount': tx.amount,
+      'expenseDescription': tx.expenseDescription
     }
     );
   }
@@ -101,6 +105,7 @@ class DatabaseEngine {
     final db = await database;
     return await db.delete('transactions');
   }
+  
   //Querying a range of transactions
   Future<List<TransactionDataModel>> getRangeTransactions(DateTime? start, DateTime? end) async{
 
@@ -118,7 +123,8 @@ class DatabaseEngine {
       return TransactionDataModel(
         id:results[i]['id'],
         dateTime: DateTime.parse(results[i]['dateTime']),
-        amount: (results[i]['amount'] as num).toDouble()
+        amount: (results[i]['amount'] as num).toDouble(),
+        expenseDescription: results[i]['expenseDescription']
         );
       }
     );

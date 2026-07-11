@@ -1,7 +1,7 @@
+import 'package:finance_app/DataModel/Enums/graph_mode.dart';
 import 'package:finance_app/DataModel/graph_data_model.dart';
 import 'package:finance_app/DataModel/transaction_data_model.dart';
 import 'package:finance_app/DatabaseManager/database_engine.dart';
-import 'package:finance_app/HomeScreen/graph_component.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class DataProcessor {
@@ -31,6 +31,7 @@ class DataProcessor {
         final TransactionDataModel prcRecord = TransactionDataModel(
           dateTime: record.dateTime,
           amount: newAmount,
+          expenseDescription: record.expenseDescription,
         );
 
         processedTransactionRecords.removeLast();
